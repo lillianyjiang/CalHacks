@@ -40,6 +40,8 @@ Below are a list of example projects in Python and NodeJS for reference to jumps
 
 - [Sandbox](https://github.com/HumeAI/CalHacks/tree/main/sandbox) | _Provides a sample on how to use Hume's Streaming API with your webcam and mic._
 
+- [Hume Chrome Extension](https://github.com/HumeAI/hume-chrome-extension) | _Sample project which demonstrates how our Web Socket API could be used to obtain real-time inference results from our Face model for videos streamed in a web browser._
+
 ## How Businesses and Researchers are utilizing Hume today:
 
 - **Health & Wellness** | Clinical diagnosis (e.g., depression, autism); patient monitoring, therap.y
