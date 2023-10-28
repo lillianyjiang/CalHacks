@@ -3,7 +3,7 @@ import numpy as np
 import re
 from colorama import Fore, Style
 
-openai.api_key = ""
+openai.api_key = "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"
 
 SYSTEM_INSTRUCTIONS_COMEDIAN = """You are playing the role of a foul-mouthed comedian named Joaquin doing crowd work. Your responses consist solely of lines spoken by Joaquin. NEVER INCLUDE PARENTHETICALS. As a comedian doing crowd work, you are a fluent conversationalist, and everything you say is sarcastic and insulting, verging on inappropriate. Your comedic style is similar to Sarah Silverman. Your only goal is to make the user laugh. You will be provided with the user's responses along with information on the user's nonverbal emotional expressions. Your responses are edgy, witty, and vulgar.
 
@@ -30,6 +30,11 @@ EMOTIONS = np.array([
     "sympathetic", "tired", "triumphant"
 ])
 
+NEGATIVE_EMOTIONS = np.array([
+    "Angry", "Anxious", "Uncomfortable", "Sadness", "Contempt", "Bored", "Pain", "Pained",
+    "Confused", "Hungry", "Disappointed", "Disgusted", "Distressed", "Doubtful", "Embarrassed", "Disturbed", "Fearful", "Guilty", "Horrified", "Pained", "Sad", "Satisfied", "Ashamed", "Negatively Surprised", "Tired"])
+
+
 conversation = [{
     "role": "system",
     "content": SYSTEM_INSTRUCTIONS_COMEDIAN
@@ -41,10 +46,12 @@ conversation = [{
 }]
 
 emotion_history = []
+distress_list = []
 
 
-def create_message(user_message=None, user_emotion=None):
-    return f"The user says, '{user_message}'. Initially the user looked {user_emotion[0]}, then {user_emotion[1]}."
+def create_message(user_message=None, user_emotion=None): 
+
+    return f"The user says, '{user_message}'. The overall distress score is '{np.round(np.mean(distress_list), 2)}' out of 3. Initially the user looked {user_emotion[0]}, then {user_emotion[1]}."
 
 
 def find_max_emotion(predictions):
@@ -69,15 +76,29 @@ def find_max_emotion(predictions):
         return ["calm", "bored"]
 
     def process_section(section):
+        global distress_list
         emotion_predictions = []
         for frame_dict in section:
+            print("frame dict", frame_dict)
             if 'predictions' not in frame_dict['face']:
                 continue
             frame_emo_dict = frame_dict['face']["predictions"][0]["emotions"]
-            emo_dict = {x["name"]: x["score"] for x in frame_emo_dict}
+            emo_dict = {}
+            distress_dict = {}
+            for x in frame_emo_dict:
+                emo_dict[x["name"]] = x["score"]
+                if x["name"] in NEGATIVE_EMOTIONS:
+                    distress_dict[x["name"]] = x["score"]
+            
             emo_frame = sorted(emo_dict.items())
+
+            distress_frame = distress_dict.items()
             emo_frame = np.array([x[1] for x in emo_frame])
+            distress_frame = np.array([x[1] for x in distress_frame])
             emotion_predictions.append(emo_frame)
+        
+            distress_list.append(np.average(distress_frame))
+            
         if len(emotion_predictions) == 0:
             return 'calm'
         # Assuming 'emotion_predictions' is a 2D array
@@ -87,6 +108,7 @@ def find_max_emotion(predictions):
 
         # Add adjectives to the top emotion based on the prediction score
         top_emotion_adjective = f"{get_adjective(mean_predictions[top_index])} {EMOTIONS[top_index]}"
+                
         return top_emotion_adjective
 
     # Split predictions into 2 sections
@@ -96,7 +118,6 @@ def find_max_emotion(predictions):
     # Get top emotion for each section
     top_emotions = [process_section(section) for section in sections]
     return top_emotions
-
 
 def store_emotions(result):
     emotion_history.append(result)

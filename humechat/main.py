@@ -13,11 +13,11 @@ from whispercpp import Whisper
 from chat import message, store_emotions
 from playsound import playsound
 from hume import HumeStreamClient, HumeClientException
-from hume.models.config import FaceConfig
+from hume.models.config import FaceConfig, BurstConfig
 from gtts import gTTS
 
 # Configurations
-HUME_API_KEY = "" # paste your API Key here
+HUME_API_KEY = "VbiYShiDrtyMySWqUodZMSaOZdyf7Tm0vdKIHBvBmaO6IaV9" # paste your API Key here
 HUME_FACE_FPS = 1 / 3  # 3 FPS
 
 TEMP_FILE = 'temp.jpg'
@@ -39,14 +39,15 @@ async def webcam_loop():
     while True:
         try:
             client = HumeStreamClient(HUME_API_KEY)
-            config = FaceConfig(identify_faces=True)
-            async with client.connect([config]) as socket:
+            configs = FaceConfig(identify_faces=True)
+            async with client.connect(configs) as socket: 
                 print("(Connected to Hume API!)")
                 while True:
                     if not recording:
                         _, frame = cam.read()
                         cv2.imwrite(TEMP_FILE, frame)
                         result = await socket.send_file(TEMP_FILE)
+                        print("result", result)
                         store_emotions(result)
                         await asyncio.sleep(1 / 3)
         except websockets.exceptions.ConnectionClosedError:
@@ -57,6 +58,7 @@ async def webcam_loop():
             break
         except Exception:
             print(traceback.format_exc())
+        
 
 
 def start_asyncio_event_loop(loop, asyncio_function):
@@ -69,7 +71,6 @@ def recording_loop():
     while recording:
         frame = recorder.read()
         recording_data.append(frame)
-
     recorder.stop()
     print("(Recording stopped...)")
 
@@ -77,7 +78,7 @@ def recording_loop():
     transcription = w.transcribe(recording_data)
     response = message(transcription)
     tts = gTTS(text=response, lang='en')
-    tts.save(TEMP_WAV_FILE)
+    tts.save(TEMP_WAV_FILE) # adding audio and video separately. recorder records audio. send wave file through the API and specify the two configs through the web socket 
     playsound(TEMP_WAV_FILE)
     os.remove(TEMP_WAV_FILE)
 
