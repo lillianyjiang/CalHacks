@@ -11,6 +11,7 @@ import base64
 import json
 
 from pynput import keyboard
+
 from pvrecorder import PvRecorder
 from whispercpp import Whisper
 from chat import message, store_emotions
@@ -78,17 +79,17 @@ def start_asyncio_event_loop(loop, asyncio_function):
 def recording_loop():
     global recording_data, recording
     while recording:
-        frame = recorder.read()
-        recording_data.append(frame)
+        recorder.read(TEMP_WAV_FILE)
+        #recording_data.append(frame)
     recorder.stop()
     print("(Recording stopped...)")
 
-    json_str = json.dumps(recording_data) #tried to convert to a string 
+    #json_str = json.dumps(recording_data) #tried to convert to a string 
     #print("type: ", type(json_str))
 
     # Now you can send this string
     #result = batch_client.submit_job([], [BurstConfig()], files=json_str)
-    result = batch_client.submit_job([json_str], [BurstConfig()])
+    result = batch_client.submit_job(TEMP_WAV_FILE, [BurstConfig()])
 
     #recording_data = np.hstack(recording_data).astype(np.int16).flatten().astype(np.float32) / 32768.0 # this may be wrong
     #result = batch_client.submit_job([], configs, files=recording_data)
@@ -119,6 +120,7 @@ def on_press(key):
             recorder.start()
             print("(Recording started...)")
             threading.Thread(target=recording_loop).start()
+
 
 
 new_loop = asyncio.new_event_loop()
