@@ -16,12 +16,17 @@ from pvrecorder import PvRecorder
 from whispercpp import Whisper
 from chat import message, store_emotions
 from playsound import playsound
+<<<<<<< HEAD
 from hume import HumeStreamClient, HumeClientException, HumeBatchClient
 from hume.models.config import FaceConfig, BurstConfig
+=======
+from hume import HumeStreamClient, HumeClientException
+from hume.models.config import FaceConfig
+>>>>>>> parent of f054d56 (distress score for faces)
 from gtts import gTTS
 
 # Configurations
-HUME_API_KEY = "VbiYShiDrtyMySWqUodZMSaOZdyf7Tm0vdKIHBvBmaO6IaV9" # paste your API Key here
+HUME_API_KEY = "" # paste your API Key here
 HUME_FACE_FPS = 1 / 3  # 3 FPS
 
 TEMP_FILE = 'temp.jpg'
@@ -44,7 +49,13 @@ configs = [FaceConfig(identify_faces=True)]
 async def webcam_loop():
     while True:
         try:
+<<<<<<< HEAD
             async with client.connect(configs) as socket: 
+=======
+            client = HumeStreamClient(HUME_API_KEY)
+            config = FaceConfig(identify_faces=True)
+            async with client.connect([config]) as socket:
+>>>>>>> parent of f054d56 (distress score for faces)
                 print("(Connected to Hume API!)")
                 while True:
                     if not recording:
@@ -68,7 +79,6 @@ async def webcam_loop():
             break
         except Exception:
             print(traceback.format_exc())
-        
 
 
 def start_asyncio_event_loop(loop, asyncio_function):
@@ -79,6 +89,7 @@ def start_asyncio_event_loop(loop, asyncio_function):
 def recording_loop():
     global recording_data, recording
     while recording:
+<<<<<<< HEAD
         recorder.read(TEMP_WAV_FILE)
         #recording_data.append(frame)
     recorder.stop()
@@ -107,6 +118,21 @@ def recording_loop():
     # tts.save(TEMP_WAV_FILE) # adding audio and video separately. recorder records audio. send wave file through the API and specify the two configs through the web socket 
     # playsound(TEMP_WAV_FILE)
     # os.remove(TEMP_WAV_FILE)
+=======
+        frame = recorder.read()
+        recording_data.append(frame)
+
+    recorder.stop()
+    print("(Recording stopped...)")
+
+    recording_data = np.hstack(recording_data).astype(np.int16).flatten().astype(np.float32) / 32768.0
+    transcription = w.transcribe(recording_data)
+    response = message(transcription)
+    tts = gTTS(text=response, lang='en')
+    tts.save(TEMP_WAV_FILE)
+    playsound(TEMP_WAV_FILE)
+    os.remove(TEMP_WAV_FILE)
+>>>>>>> parent of f054d56 (distress score for faces)
 
 
 def on_press(key):
