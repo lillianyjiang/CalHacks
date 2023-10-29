@@ -1,4 +1,3 @@
-from importlib.metadata import files
 import threading
 import asyncio
 import os
@@ -7,26 +6,18 @@ import time
 import traceback
 import websockets
 import numpy as np
-import base64
-import json
 
 from pynput import keyboard
-
 from pvrecorder import PvRecorder
 from whispercpp import Whisper
 from chat import message, store_emotions
 from playsound import playsound
-<<<<<<< HEAD
-from hume import HumeStreamClient, HumeClientException, HumeBatchClient
-from hume.models.config import FaceConfig, BurstConfig
-=======
 from hume import HumeStreamClient, HumeClientException
 from hume.models.config import FaceConfig
->>>>>>> parent of f054d56 (distress score for faces)
 from gtts import gTTS
 
 # Configurations
-HUME_API_KEY = "" # paste your API Key here
+HUME_API_KEY = "VbiYShiDrtyMySWqUodZMSaOZdyf7Tm0vdKIHBvBmaO6IaV9" # paste your API Key here
 HUME_FACE_FPS = 1 / 3  # 3 FPS
 
 TEMP_FILE = 'temp.jpg'
@@ -42,20 +33,14 @@ recording_data = []
 
 # Webcam setup
 cam = cv2.VideoCapture(0)
-batch_client = HumeBatchClient(HUME_API_KEY)
-client = HumeStreamClient(HUME_API_KEY)
-configs = [FaceConfig(identify_faces=True)]
-#change out this webcam loop to do it and remove the press space to record voice part
+
+
 async def webcam_loop():
     while True:
         try:
-<<<<<<< HEAD
-            async with client.connect(configs) as socket: 
-=======
             client = HumeStreamClient(HUME_API_KEY)
             config = FaceConfig(identify_faces=True)
             async with client.connect([config]) as socket:
->>>>>>> parent of f054d56 (distress score for faces)
                 print("(Connected to Hume API!)")
                 while True:
                     if not recording:
@@ -64,13 +49,6 @@ async def webcam_loop():
                         result = await socket.send_file(TEMP_FILE)
                         store_emotions(result)
                         await asyncio.sleep(1 / 3)
-            # configs2 = BurstConfig()
-            # async with client.connect(configs2) as socket:
-            #     print("(Connected to Hume API!)")
-            #     result = await socket.send_file("<your-audio-filepath>")
-            #     print(result)
-                        
-
         except websockets.exceptions.ConnectionClosedError:
             print("Connection lost. Attempting to reconnect in 1 seconds.")
             time.sleep(1)
@@ -89,36 +67,6 @@ def start_asyncio_event_loop(loop, asyncio_function):
 def recording_loop():
     global recording_data, recording
     while recording:
-<<<<<<< HEAD
-        recorder.read(TEMP_WAV_FILE)
-        #recording_data.append(frame)
-    recorder.stop()
-    print("(Recording stopped...)")
-
-    #json_str = json.dumps(recording_data) #tried to convert to a string 
-    #print("type: ", type(json_str))
-
-    # Now you can send this string
-    #result = batch_client.submit_job([], [BurstConfig()], files=json_str)
-    result = batch_client.submit_job(TEMP_WAV_FILE, [BurstConfig()])
-
-    #recording_data = np.hstack(recording_data).astype(np.int16).flatten().astype(np.float32) / 32768.0 # this may be wrong
-    #result = batch_client.submit_job([], configs, files=recording_data)
-    result.await_complete()
-    result.download_predictions("predictions.json")
-    print("Predictions downloaded to predictions.json")
-    # func(result) about burst data 
-
-    # below code does text to speech 
-    # recording_data = np.hstack(recording_data).astype(np.int16).flatten().astype(np.float32) / 32768.0
-    # transcription = w.transcribe(recording_data)
-    # response = message(transcription)
-    
-    # tts = gTTS(text=response, lang='en')
-    # tts.save(TEMP_WAV_FILE) # adding audio and video separately. recorder records audio. send wave file through the API and specify the two configs through the web socket 
-    # playsound(TEMP_WAV_FILE)
-    # os.remove(TEMP_WAV_FILE)
-=======
         frame = recorder.read()
         recording_data.append(frame)
 
@@ -128,11 +76,11 @@ def recording_loop():
     recording_data = np.hstack(recording_data).astype(np.int16).flatten().astype(np.float32) / 32768.0
     transcription = w.transcribe(recording_data)
     response = message(transcription)
-    tts = gTTS(text=response, lang='en')
-    tts.save(TEMP_WAV_FILE)
-    playsound(TEMP_WAV_FILE)
-    os.remove(TEMP_WAV_FILE)
->>>>>>> parent of f054d56 (distress score for faces)
+    if response: 
+        tts = gTTS(text=response, lang='en')
+        tts.save(TEMP_WAV_FILE)
+        playsound(TEMP_WAV_FILE)
+        os.remove(TEMP_WAV_FILE)
 
 
 def on_press(key):
@@ -146,7 +94,6 @@ def on_press(key):
             recorder.start()
             print("(Recording started...)")
             threading.Thread(target=recording_loop).start()
-
 
 
 new_loop = asyncio.new_event_loop()
