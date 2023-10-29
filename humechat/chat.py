@@ -79,7 +79,7 @@ def find_max_emotion(predictions):
         global distress_list
         emotion_predictions = []
         for frame_dict in section:
-            print("frame dict", frame_dict)
+            #print("frame dict", frame_dict)
             if 'predictions' not in frame_dict['face']:
                 continue
             frame_emo_dict = frame_dict['face']["predictions"][0]["emotions"]

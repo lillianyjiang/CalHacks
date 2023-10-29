@@ -1,3 +1,4 @@
+from importlib.metadata import files
 import threading
 import asyncio
 import os
@@ -6,13 +7,15 @@ import time
 import traceback
 import websockets
 import numpy as np
+import base64
+import json
 
 from pynput import keyboard
 from pvrecorder import PvRecorder
 from whispercpp import Whisper
 from chat import message, store_emotions
 from playsound import playsound
-from hume import HumeStreamClient, HumeClientException
+from hume import HumeStreamClient, HumeClientException, HumeBatchClient
 from hume.models.config import FaceConfig, BurstConfig
 from gtts import gTTS
 
@@ -33,13 +36,13 @@ recording_data = []
 
 # Webcam setup
 cam = cv2.VideoCapture(0)
-
-
+batch_client = HumeBatchClient(HUME_API_KEY)
+client = HumeStreamClient(HUME_API_KEY)
+configs = [FaceConfig(identify_faces=True)]
+#change out this webcam loop to do it and remove the press space to record voice part
 async def webcam_loop():
     while True:
         try:
-            client = HumeStreamClient(HUME_API_KEY)
-            configs = FaceConfig(identify_faces=True)
             async with client.connect(configs) as socket: 
                 print("(Connected to Hume API!)")
                 while True:
@@ -47,9 +50,15 @@ async def webcam_loop():
                         _, frame = cam.read()
                         cv2.imwrite(TEMP_FILE, frame)
                         result = await socket.send_file(TEMP_FILE)
-                        print("result", result)
                         store_emotions(result)
                         await asyncio.sleep(1 / 3)
+            # configs2 = BurstConfig()
+            # async with client.connect(configs2) as socket:
+            #     print("(Connected to Hume API!)")
+            #     result = await socket.send_file("<your-audio-filepath>")
+            #     print(result)
+                        
+
         except websockets.exceptions.ConnectionClosedError:
             print("Connection lost. Attempting to reconnect in 1 seconds.")
             time.sleep(1)
@@ -74,13 +83,29 @@ def recording_loop():
     recorder.stop()
     print("(Recording stopped...)")
 
-    recording_data = np.hstack(recording_data).astype(np.int16).flatten().astype(np.float32) / 32768.0
-    transcription = w.transcribe(recording_data)
-    response = message(transcription)
-    tts = gTTS(text=response, lang='en')
-    tts.save(TEMP_WAV_FILE) # adding audio and video separately. recorder records audio. send wave file through the API and specify the two configs through the web socket 
-    playsound(TEMP_WAV_FILE)
-    os.remove(TEMP_WAV_FILE)
+    json_str = json.dumps(recording_data) #tried to convert to a string 
+    #print("type: ", type(json_str))
+
+    # Now you can send this string
+    #result = batch_client.submit_job([], [BurstConfig()], files=json_str)
+    result = batch_client.submit_job([json_str], [BurstConfig()])
+
+    #recording_data = np.hstack(recording_data).astype(np.int16).flatten().astype(np.float32) / 32768.0 # this may be wrong
+    #result = batch_client.submit_job([], configs, files=recording_data)
+    result.await_complete()
+    result.download_predictions("predictions.json")
+    print("Predictions downloaded to predictions.json")
+    # func(result) about burst data 
+
+    # below code does text to speech 
+    # recording_data = np.hstack(recording_data).astype(np.int16).flatten().astype(np.float32) / 32768.0
+    # transcription = w.transcribe(recording_data)
+    # response = message(transcription)
+    
+    # tts = gTTS(text=response, lang='en')
+    # tts.save(TEMP_WAV_FILE) # adding audio and video separately. recorder records audio. send wave file through the API and specify the two configs through the web socket 
+    # playsound(TEMP_WAV_FILE)
+    # os.remove(TEMP_WAV_FILE)
 
 
 def on_press(key):
